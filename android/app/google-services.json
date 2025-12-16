@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "693720663766",
+    "project_id": "personal-outfit-recommendation",
+    "storage_bucket": "personal-outfit-recommendation.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693720663766:android:be8f67009d3952c78b6b77",
+        "android_client_info": {
+          "package_name": "com.example.personal_outfit_recommendation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3FwbJadCzoPYwU5OYsmPbmbACqCbjTwk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
