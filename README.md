@@ -7,6 +7,7 @@ A Flutter project.
 ### 1. Prerequisites
 * [Flutter SDK](https://flutter.dev/docs/get-started/install) installed.
 * A running instance of the **Python Backend** [Clip-backend](https://github.com/hockXiang025/clip-backend).
+* [OpeWeather API Key](https://openweathermap.org/)
 
 ### 2. Environment Setup
 This project uses `flutter_dotenv` to manage sensitive API keys. You must configure this before running the app.
