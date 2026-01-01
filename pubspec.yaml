@@ -40,6 +40,12 @@ dependencies:
   model_viewer_plus: ^1.9.3
   url_launcher: ^6.1.7
   webview_flutter: ^4.2.1
+  table_calendar: ^3.0.9
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.2
+  device_info_plus: ^10.1.0
+  permission_handler: ^11.0.1
+  flutter_dotenv: ^5.1.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -52,10 +58,14 @@ dependencies:
   geolocator: ^14.0.2
   cached_network_image: ^3.4.1
   flutter_launcher_icons: ^0.14.4
+  intl: ^0.20.2
+  geocoding: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  launcher_name: ^1.0.2
+  flutter_native_splash: ^2.3.10
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -64,10 +74,25 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/app_icon.png"
+
+launcher_name:
+  default: "StyleCast"
+
+flutter_native_splash:
+  # This sets the background color
+  color: "#FFFFFF"
+
+  image: assets/app_icon.png
+
+  # Android 12+ specific support
+  android_12:
+    image: assets/app_icon.png
+    color: "#FFFFFF"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -83,6 +108,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/app_icon.png
+    - .env
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

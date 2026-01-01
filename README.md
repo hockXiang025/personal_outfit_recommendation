@@ -1,16 +1,42 @@
 # personal_outfit_recommendation
 
-A new Flutter project.
+A Flutter project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+## How to Run
 
-A few resources to get you started if this is your first Flutter project:
+### 1. Prerequisites
+* [Flutter SDK](https://flutter.dev/docs/get-started/install) installed.
+* A running instance of the **Python Backend** [Clip-backend](https://flutter.dev/docs/get-started/install).
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 2. Environment Setup
+This project uses `flutter_dotenv` to manage sensitive API keys. You must configure this before running the app.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1.  **Duplicate the template file:**
+    Copy the `.env.template` file in the root directory and rename the copy to `.env`.
+
+    * **Mac/Linux:**
+        ```bash
+        cp .env.template .env
+        ```
+    * **Windows:**
+        ```cmd
+        copy .env.template .env
+        ```
+
+2.  **Configure your keys:**
+    Open the new `.env` file and fill in your actual values
+
+### 3. Install Dependencies
+Run the following command to install all required Flutter packages:
+
+```bash
+flutter pub get
+
+
+###. Install Dependencies
+Run the following command to install all required Flutter packages:
+
+```bash
+flutter pub get

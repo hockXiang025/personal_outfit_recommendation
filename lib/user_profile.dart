@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
+import 'app_drawer.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final String uid;
+  const ProfilePage({super.key, required this.uid});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -28,37 +32,25 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _ageCtrl = TextEditingController();
   String? _gender; // "Male", "Female"
 
-
-  // Derived recommendations
+  // Size recommendations
   String recommendedTop = '-';
   String recommendedBottom = '-';
 
   @override
   void initState() {
     super.initState();
+    uid = widget.uid;
     _initCacheAndUser();
   }
 
   Future<void> _initCacheAndUser() async {
     _prefs = await SharedPreferences.getInstance();
 
-    // Load cached values instantly (removes white screen feeling)
+    // Load cached values instantly
     _loadFromCache();
 
-    final user = _auth.currentUser;
-    if (user == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pop();
-      });
-      return;
-    }
-
-    uid = user.uid;
-
-    // Start listening to Firestore auto updates
+    // Listening to Firestore auto updates
     _subscribeToFirestore();
-
-    // Firestore will update the screen later
   }
 
   void _loadFromCache() {
@@ -77,6 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _profileStream = _firestore.collection('profile').doc(uid).snapshots();
 
     _profileStream!.listen((doc) {
+      if (_loading) setState(() => _loading = false);
       if (!doc.exists) return;
       final data = doc.data() as Map<String, dynamic>;
 
@@ -89,7 +82,7 @@ class _ProfilePageState extends State<ProfilePage> {
       });
 
       _calcAndSetRecommendation();
-
+    }, onError: (e) {
       if (_loading) setState(() => _loading = false);
     });
   }
@@ -106,31 +99,17 @@ class _ProfilePageState extends State<ProfilePage> {
     await _prefs?.setString('profile_height', height);
     await _prefs?.setString('profile_age', age);
     if (gender != null) await _prefs?.setString('profile_gender', gender);
-  }
 
-  Future<void> _loadProfile() async {
-    setState(() => _loading = true);
-    try {
-      final doc = await _firestore.collection('profile').doc(uid).get();
-      final data = doc.data() ?? {};
+    final Map<String, dynamic> userProfileMap = {
+      "username": username,
+      "weight": weight,
+      "height": height,
+      "age": age,
+      "gender": gender,
+      "uid": uid
+    };
 
-      _usernameCtrl.text = (data['username'] ?? '') as String;
-      // weight and height stored as numbers or strings; handle both
-      final weight = data['weight'];
-      final height = data['height'];
-
-      _weightCtrl.text = weight != null ? weight.toString() : '';
-      _heightCtrl.text = height != null ? height.toString() : '';
-
-      _calcAndSetRecommendation();
-    } catch (e) {
-      // optional: show snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load profile: $e')),
-      );
-    } finally {
-      setState(() => _loading = false);
-    }
+    await _prefs?.setString("user_profile", jsonEncode(userProfileMap));
   }
 
   _calcAndSetRecommendation() {
@@ -153,16 +132,13 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  /// Option 1: Simple ranges mapping (height in cm, weight in kg)
-  /// Returns Map with keys 'top' and 'bottom' with sizes like S, M, L, XL.
+  // calculate suitable size based on height, weight and age
   Map<String, String> calculateSizes({
     required double heightCm,
     required double weightKg,
-    int? age, // optional age
+    int? age,
   }) {
-    // ----------------------------
     // Height category
-    // ----------------------------
     String heightCategory;
     if (heightCm < 160) {
       heightCategory = 'short';
@@ -172,9 +148,7 @@ class _ProfilePageState extends State<ProfilePage> {
       heightCategory = 'tall';
     }
 
-    // ----------------------------
     // Weight category
-    // ----------------------------
     String weightCategory;
     if (weightKg < 55) {
       weightCategory = 'light';
@@ -186,9 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
       weightCategory = 'xheavy';
     }
 
-    // ----------------------------
     // Top size mapping
-    // ----------------------------
     String top;
     switch (weightCategory) {
       case 'light':
@@ -204,11 +176,8 @@ class _ProfilePageState extends State<ProfilePage> {
         top = 'XL';
     }
 
-    // ----------------------------
     // Bottom size mapping
-    // ----------------------------
     String bottom;
-
     if (heightCategory == 'short') {
       if (weightCategory == 'light') bottom = 'S';
       else if (weightCategory == 'normal') bottom = 'S-M';
@@ -226,18 +195,14 @@ class _ProfilePageState extends State<ProfilePage> {
       else bottom = 'XL';
     }
 
-    // ----------------------------
     // Age adjustments
-    // ----------------------------
     if (age != null) {
       if (age < 18) {
-        // Slightly smaller sizes for children/teens
         if (top == 'M') top = 'S';
         else if (top == 'L') top = 'M';
         if (bottom.contains('M')) bottom = bottom.replaceAll('M', 'S');
         else if (bottom.contains('L')) bottom = bottom.replaceAll('L', 'M');
       } else if (age >= 60) {
-        // Slightly looser for older adults
         top += '+';
         bottom += '+';
       }
@@ -245,7 +210,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return {'top': top, 'bottom': bottom};
   }
-
 
   Future<void> _saveProfile() async {
     final username = _usernameCtrl.text.trim();
@@ -270,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
         'gender': _gender,
       }, SetOptions(merge: true));
 
-// save to local cache
+      // save to local cache
       await _saveToCache(
         username: username,
         weight: weightVal.toString(),
@@ -386,7 +350,6 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -414,7 +377,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Modern clean theme colors
     final accent = Colors.blue.shade600;
 
     if (_loading &&
@@ -430,9 +392,11 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
+      drawer: AppDrawer(uid: widget.uid),
       appBar: AppBar(
         title: const Text('Profile'),
         backgroundColor: accent,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       backgroundColor: Colors.blue.shade50,
@@ -513,7 +477,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         label: 'Username',
                         controller: _usernameCtrl,
                         icon: Icons.person,
-                        onChangedCallback: () => setState(() {}), // update avatar letter
+                        onChangedCallback: () => setState(() {}),
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -593,8 +557,19 @@ class _ProfilePageState extends State<ProfilePage> {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: _saving ? null : _saveProfile,
-                              style: ElevatedButton.styleFrom(backgroundColor: accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                              child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Save Changes'),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: accent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)
+                                  )),
+                              child: _saving
+                                  ? const SizedBox(
+                                  height: 20, width: 20,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2
+                                  ))
+                                  : const Text('Save Changes'),
                             ),
                           ),
                         ],

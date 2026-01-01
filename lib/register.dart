@@ -74,9 +74,10 @@ class _RegisterPageState extends State<RegisterPage> {
       await prefs.setString("user_profile", jsonEncode(profileData));
 
       // Navigate to main page
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => MainPage(user: profileData)),
+        MaterialPageRoute(builder: (_) => MainPage(uid: uid)),
+        (route) => false,
       );
     } on FirebaseAuthException catch (e) {
       String message;

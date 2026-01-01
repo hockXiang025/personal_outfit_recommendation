@@ -17,15 +17,16 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool isLoading = false;
-  bool _obscurePassword = true;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Login function
+  bool isLoading = false;
+  bool _obscurePassword = true;
+
+  // ---------------- LOGIN ----------------
   Future<void> _login() async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -37,75 +38,74 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      // Firebase login
+      await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Convert Firebase User to Map<String, dynamic>
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
-      // fetch user profile from Firestore
-      DocumentSnapshot snap = await FirebaseFirestore.instance
+      // Load user profile
+      final snap = await FirebaseFirestore.instance
           .collection("profile")
           .doc(uid)
           .get();
 
-      if (!snap.exists) {
-        print("🔥 No profile found for UID: $uid");
-      } else {
-        print("🔥 PROFILE LOADED: ${snap.data()}");
+      Map<String, dynamic> userProfile = {};
+      if (snap.exists) {
+        userProfile = snap.data() as Map<String, dynamic>;
+        userProfile.remove('createdAt');
+        userProfile.remove('updatedAt');
       }
 
-      final userData = snap.data() as Map<String, dynamic>? ?? {};
-
-      // Remove timestamps before saving
-      userData.remove('createdAt');
-      userData.remove('updatedAt');
-
-      // Save user profile locally
+      // Cache profile locally
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("user_profile", jsonEncode(userData));
+      await prefs.setString("user_profile", jsonEncode(userProfile));
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login successful!")),
       );
 
+      // Navigate to MainPage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => MainPage(user: userData), // Pass Map<String, dynamic>
+          builder: (_) => MainPage(uid: uid),
         ),
       );
     } on FirebaseAuthException catch (e) {
-      String errorMessage = "Login failed!";
+      String msg = "Login failed";
+
       if (e.code == 'user-not-found') {
-        errorMessage = "No user found with this email.";
+        msg = "No user found with this email.";
       } else if (e.code == 'wrong-password') {
-        errorMessage = "Incorrect password.";
+        msg = "Incorrect password.";
       } else if (e.code == 'invalid-email') {
-        errorMessage = "Invalid email address.";
+        msg = "Invalid email address.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
+        SnackBar(content: Text(msg)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  // Forgot password
+  // ---------------- RESET PASSWORD ----------------
   Future<void> _resetPassword() async {
-    String email = _emailController.text.trim();
+    final email = _emailController.text.trim();
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter your email to reset password")),
+        const SnackBar(content: Text("Enter email to reset password")),
       );
       return;
     }
@@ -113,22 +113,23 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password reset email sent! Check your inbox.")),
+        const SnackBar(content: Text("Password reset email sent")),
       );
     } on FirebaseAuthException catch (e) {
-      String errorMessage = "Failed to send reset email!";
+      String msg = "Reset failed";
       if (e.code == 'user-not-found') {
-        errorMessage = "No user found with this email.";
+        msg = "No user found with this email.";
       } else if (e.code == 'invalid-email') {
-        errorMessage = "Invalid email address.";
+        msg = "Invalid email address.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
+        SnackBar(content: Text(msg)),
       );
     }
   }
 
+  // ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,8 +142,10 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(25),
               child: Column(
@@ -153,6 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
+
                   TextField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -160,9 +164,9 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.email),
                       border: OutlineInputBorder(),
                     ),
-                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 15),
+
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -172,7 +176,9 @@ class _LoginPageState extends State<LoginPage> {
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
                         onPressed: () {
                           setState(() {
@@ -182,18 +188,17 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: _resetPassword,
-                      child: const Text(
-                        "Forgot Password?",
-                        style: TextStyle(color: Colors.blue),
-                      ),
+                      child: const Text("Forgot Password?"),
                     ),
                   ),
-                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 15),
+
                   isLoading
                       ? const CircularProgressIndicator()
                       : SizedBox(
@@ -213,7 +218,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -222,7 +229,9 @@ class _LoginPageState extends State<LoginPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const RegisterPage()),
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
                           );
                         },
                         child: const Text(
