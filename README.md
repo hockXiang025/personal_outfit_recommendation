@@ -4,11 +4,9 @@ A Flutter project.
 
 ## Getting Started
 
-## How to Run
-
 ### 1. Prerequisites
 * [Flutter SDK](https://flutter.dev/docs/get-started/install) installed.
-* A running instance of the **Python Backend** [Clip-backend](https://flutter.dev/docs/get-started/install).
+* A running instance of the **Python Backend** [Clip-backend](https://github.com/hockXiang025/clip-backend).
 
 ### 2. Environment Setup
 This project uses `flutter_dotenv` to manage sensitive API keys. You must configure this before running the app.
@@ -34,9 +32,3 @@ Run the following command to install all required Flutter packages:
 ```bash
 flutter pub get
 
-
-###. Install Dependencies
-Run the following command to install all required Flutter packages:
-
-```bash
-flutter pub get
